@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Betting Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10; --surface: #111318; --border: #252830;
+    --accent: #2dd4bf; --accent2: #818cf8; --win: #3ddc84; --loss: #ff4d6d;
+    --void: #f0a500; --text: #e8eaf0; --muted: #6b7080;
+    --tennis: #f0d735; --basket: #ff7c35; --football: #35c8f0; --others: #b482ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; font-size: 14px; }
+
+  /* ── PIN ── */
+  .pin-screen { position: fixed; inset: 0; background: var(--bg); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; }
+  .pin-brand { font-family: 'Bebas Neue', cursive; font-size: 28px; letter-spacing: 4px; color: var(--accent); margin-bottom: 6px; }
+  .pin-brand span { color: var(--text); }
+  .pin-subtitle { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 36px; }
+  .pin-dots { display: flex; gap: 16px; margin-bottom: 32px; }
+  .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); transition: all 0.2s; }
+  .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 280px; }
+  .pin-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; font-family: 'Bebas Neue', cursive; font-size: 26px; color: var(--text); cursor: pointer; text-align: center; transition: all 0.15s; }
+  .pin-btn:active { background: var(--border); transform: scale(0.95); }
+  .pin-btn.del { font-size: 18px; color: var(--muted); }
+  .pin-error { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--loss); margin-top: 20px; opacity: 0; transition: opacity 0.3s; }
+  .pin-error.show { opacity: 1; }
+
+  /* ── MAIN APP ── */
+  #app { display: none; height: 100vh; display: none; flex-direction: column; }
+  #app.visible { display: flex; }
+
+  /* ── HEADER ── */
+  .app-header { background: var(--surface); padding: 50px 20px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .app-brand { font-family: 'Bebas Neue', cursive; font-size: 20px; letter-spacing: 3px; color: var(--accent); }
+  .app-brand span { color: var(--text); }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .sync-dot.ok { background: var(--win); }
+  .sync-dot.loading { background: var(--accent); }
+  .sync-dot.error { background: var(--loss); }
+
+  /* ── PAGES ── */
+  .pages { flex: 1; overflow: hidden; position: relative; }
+  .page { position: absolute; inset: 0; overflow-y: auto; padding-bottom: 90px; display: none; }
+  .page.active { display: block; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav { background: var(--surface); border-top: 1px solid var(--border); display: flex; padding: 8px 0 20px; flex-shrink: 0; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 6px 0; transition: all 0.2s; }
+  .nav-icon { font-size: 22px; }
+  .nav-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .nav-item.active .nav-label { color: var(--accent); }
+  .nav-item.active .nav-icon { filter: drop-shadow(0 0 4px var(--accent)); }
+  .nav-badge { position: relative; }
+  .nav-badge-dot { position: absolute; top: -2px; right: -6px; background: var(--loss); color: #fff; font-size: 8px; font-family: 'DM Mono', monospace; font-weight: 700; padding: 1px 4px; border-radius: 8px; display: none; }
+
+  /* ── HOME PAGE ── */
+  .balance-card { margin: 16px; background: linear-gradient(135deg, #001a18, #021a18); border: 1px solid rgba(45,212,191,0.2); border-radius: 16px; padding: 20px; }
+  .balance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .balance-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .add-btn { padding: 6px 12px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; color: #0a0c10; background: var(--accent); border: none; cursor: pointer; }
+  .add-btn:active { opacity: 0.85; }
+  .balance-amount { font-family: 'Bebas Neue', cursive; font-size: 52px; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+  .balance-diff { display: inline-block; font-family: 'DM Mono', monospace; font-size: 12px; padding: 2px 10px; border-radius: 6px; margin-bottom: 16px; }
+  .balance-diff.pos { background: rgba(61,220,132,0.15); color: var(--win); }
+  .balance-diff.neg { background: rgba(255,77,109,0.15); color: var(--loss); }
+  .balance-diff.neu { background: rgba(107,112,128,0.15); color: var(--muted); }
+  .balance-meta { display: flex; border-top: 1px solid rgba(45,212,191,0.1); padding-top: 14px; }
+  .bm-item { flex: 1; text-align: center; }
+  .bm-item + .bm-item { border-left: 1px solid rgba(45,212,191,0.1); }
+  .bm-lbl { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .bm-val { font-family: 'Bebas Neue', cursive; font-size: 18px; color: var(--text); }
+
+  .streak-card { margin: 0 16px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .streak-lbl { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .streak-val { font-family: 'Bebas Neue', cursive; font-size: 22px; }
+  .streak-val.win { color: var(--win); } .streak-val.loss { color: var(--loss); } .streak-val.none { color: var(--muted); }
+
+  .section-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 0 16px 10px; }
+
+  .picks-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+  .pick-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .pick-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; overflow: hidden; }
+  .pick-left { flex: 1; min-width: 0; padding-right: 10px; overflow: hidden; }
+  .pick-match { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; word-break: break-word; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .pick-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+  .pick-date-txt { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+  .sport-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+  .sport-tennis   { background: rgba(240,215,53,0.15); color: var(--tennis); }
+  .sport-basket   { background: rgba(255,124,53,0.15); color: var(--basket); }
+  .sport-football { background: rgba(53,200,240,0.15); color: var(--football); }
+  .sport-others   { background: rgba(180,130,255,0.15); color: var(--others); }
+  .pick-num { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+  .pick-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .result-badge { padding: 3px 10px; border-radius: 5px; font-size: 11px; font-weight: 700; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
+  .res-W { background: rgba(61,220,132,0.2); color: var(--win); }
+  .res-L { background: rgba(255,77,109,0.2); color: var(--loss); }
+  .res-V { background: rgba(240,165,0,0.2); color: var(--void); }
+  .res-P { background: rgba(107,112,128,0.2); color: var(--muted); }
+  .pick-profit { font-family: 'Bebas Neue', cursive; font-size: 20px; }
+  .pick-profit.pos { color: var(--win); } .pick-profit.neg { color: var(--loss); } .pick-profit.neu { color: var(--muted); }
+  .pick-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 10px; }
+  .pick-detail { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .pick-detail span { color: var(--accent); }
+  .icon-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px 6px; }
+
+  .empty-box { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty-box .big { font-family: 'Bebas Neue'; font-size: 32px; color: var(--border); letter-spacing: 3px; margin-bottom: 6px; }
+
+  /* ── STATS PAGE ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .stat-card .lbl { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-card .val { font-family: 'Bebas Neue', cursive; font-size: 32px; }
+  .val.green { color: var(--win); } .val.red { color: var(--loss); } .val.blue { color: var(--accent2); } .val.white { color: var(--text); } .val.teal { color: var(--accent); }
+
+  .chart-card { margin: 0 16px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .chart-lbl { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .chart-svg { width: 100%; height: 80px; display: block; }
+
+  .date-filter { display: flex; gap: 8px; padding: 0 16px 16px; }
+  .date-btn { flex: 1; padding: 8px 4px; border-radius: 10px; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); background: var(--surface); border: 1px solid var(--border); cursor: pointer; text-align: center; transition: all 0.2s; }
+  .date-btn.active { background: var(--border); color: var(--text); border-color: var(--accent2); }
+
+  /* ── HISTORY PAGE ── */
+  .sport-tabs { display: flex; overflow-x: auto; padding: 16px 16px 10px; gap: 6px; scrollbar-width: none; }
+  .sport-tabs::-webkit-scrollbar { display: none; }
+  .sport-tab { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); background: var(--surface); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
+  .sport-tab.active { background: var(--accent); color: #0a0c10; border-color: var(--accent); }
+  .tab-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* ── CALENDAR ── */
+  .cal-wrap { padding: 0 16px 16px; }
+  .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .cal-nav-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 16px; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .cal-nav-btn:active { background: var(--border); }
+  .cal-month { font-family: 'Bebas Neue', cursive; font-size: 20px; letter-spacing: 2px; color: var(--text); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); text-align: center; padding: 4px 0; letter-spacing: 1px; }
+  .cal-day { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); cursor: default; position: relative; }
+  .cal-day.has-picks { cursor: pointer; font-weight: 700; }
+  .cal-day.all-won { background: rgba(61,220,132,0.2); color: var(--win); }
+  .cal-day.all-lost { background: rgba(255,77,109,0.2); color: var(--loss); }
+  .cal-day.mixed { background: rgba(240,165,0,0.2); color: var(--void); }
+  .cal-day.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .cal-day.today { font-weight: 700; color: var(--accent); }
+  .cal-dot { position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+  .cal-selected-picks { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .cal-selected-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .deposit-card { margin: 0 16px 8px; background: var(--surface); border: 1px solid rgba(45,212,191,0.15); border-radius: 12px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .dep-amount { font-family: 'Bebas Neue', cursive; font-size: 24px; color: var(--accent); }
+  .dep-lbl { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .dep-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-align: right; }
+
+  /* ── FAB ── */
+  .fab { position: fixed; bottom: 88px; right: 20px; background: var(--accent); color: #0a0c10; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: 0 4px 20px rgba(45,212,191,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .fab:active { transform: scale(0.93); }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; padding: 16px 20px 44px; border-top: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-family: 'Bebas Neue', cursive; font-size: 22px; letter-spacing: 2px; color: var(--accent); margin-bottom: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
+  input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 13px 14px; font-family: 'DM Mono', monospace; font-size: 16px; outline: none; border-radius: 10px; width: 100%; -webkit-appearance: none; transition: border-color 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--surface); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-cancel { flex: 1; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 15px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; border-radius: 12px; }
+  .btn-save { flex: 2; background: var(--accent); border: none; color: #0a0c10; padding: 15px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; border-radius: 12px; }
+  .btn-save:active { opacity: 0.85; }
+  .btn-save:disabled { opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-brand">⚡ <span>BETTING</span> TRACKER</div>
+  <div class="pin-subtitle" id="pinSubtitle">Enter PIN</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn" style="opacity:0" disabled></button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-error" id="pinError">Incorrect PIN</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-header">
+    <div class="app-brand">⚡ <span>BETTING</span> TRACKER</div>
+    <div class="sync-dot loading" id="syncDot"></div>
+  </div>
+
+  <div class="pages">
+
+    <!-- HOME -->
+    <div class="page active" id="pageHome">
+      <div class="balance-card">
+        <div class="balance-header">
+          <div class="balance-label">Current Balance</div>
+          <div style="display:flex;gap:6px;">
+            <button class="add-btn" onclick="openDepositModal()">💰 Add Money</button>
+            <button class="add-btn" style="background:var(--surface);color:var(--accent);border:1px solid var(--accent);" onclick="openAdjustModal()">✏️ Edit</button>
+          </div>
+        </div>
+        <div class="balance-amount" id="balAmount">€30.00</div>
+        <div class="balance-diff neu" id="balDiff">+€0.00</div>
+        <div class="balance-meta">
+          <div class="bm-item"><div class="bm-lbl">Initial</div><div class="bm-val" id="balInitial">€30.00</div></div>
+          <div class="bm-item"><div class="bm-lbl">Staked</div><div class="bm-val" id="balStaked">€0.00</div></div>
+          <div class="bm-item"><div class="bm-lbl">Pending</div><div class="bm-val" id="balPending">€0.00</div></div>
+        </div>
+      </div>
+
+      <div class="streak-card">
+        <div>
+          <div class="streak-lbl">Current Streak</div>
+          <div class="streak-val none" id="streakVal">—</div>
+        </div>
+        <div style="font-size:32px" id="streakEmoji">😐</div>
+      </div>
+
+      <div class="section-title" id="pendingTitle">PENDING BETS</div>
+      <div class="picks-list" id="homePicks"></div>
+      <div class="empty-box" id="homeEmpty" style="display:none">
+        <div class="big">ALL CLEAR</div>
+        <p>No pending bets right now</p>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="page" id="pageStats">
+      <div class="date-filter" style="padding-top:16px">
+        <button class="date-btn active" onclick="setDateFilter('ALL',this)">All</button>
+        <button class="date-btn" onclick="setDateFilter('7',this)">7d</button>
+        <button class="date-btn" onclick="setDateFilter('30',this)">30d</button>
+        <button class="date-btn" onclick="setDateFilter('90',this)">90d</button>
+      </div>
+      <div class="chart-card">
+        <div class="chart-lbl">Balance History</div>
+        <svg class="chart-svg" id="chartSvg" viewBox="0 0 300 80" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="pageHistory">
+      <!-- View toggle -->
+      <div style="display:flex;gap:8px;padding:16px 16px 0;align-items:center">
+        <button onclick="setHistoryView('list',this)" id="btnListView" style="flex:1;padding:8px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:var(--accent);color:#0a0c10;border:none;cursor:pointer;">📋 List</button>
+        <button onclick="setHistoryView('calendar',this)" id="btnCalView" style="flex:1;padding:8px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:var(--surface);color:var(--muted);border:1px solid var(--border);cursor:pointer;">📅 Calendar</button>
+      </div>
+
+      <!-- List view -->
+      <div id="historyListView">
+        <div class="sport-tabs">
+          <div class="sport-tab active" onclick="setHistorySport('ALL',this)"><span class="tab-dot" style="background:var(--accent)"></span>All</div>
+          <div class="sport-tab" onclick="setHistorySport('Tennis',this)"><span class="tab-dot" style="background:var(--tennis)"></span>Tennis</div>
+          <div class="sport-tab" onclick="setHistorySport('Basketball',this)"><span class="tab-dot" style="background:var(--basket)"></span>Basketball</div>
+          <div class="sport-tab" onclick="setHistorySport('Football',this)"><span class="tab-dot" style="background:var(--football)"></span>Football</div>
+          <div class="sport-tab" onclick="setHistorySport('Others',this)"><span class="tab-dot" style="background:var(--others)"></span>Others</div>
+        </div>
+        <div class="picks-list" id="historyPicks"></div>
+        <div class="empty-box" id="historyEmpty" style="display:none">
+          <div class="big">NO HISTORY</div>
+          <p>No resolved bets yet</p>
+        </div>
+      </div>
+
+      <!-- Calendar view -->
+      <div id="historyCalView" style="display:none">
+        <div class="cal-wrap">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+            <div class="cal-month" id="calMonth"></div>
+            <button class="cal-nav-btn" onclick="calNext()">›</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-selected-picks" id="calPicksDetail"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEPOSITS -->
+    <div class="page" id="pageDeposits">
+      <div style="padding:16px 16px 8px">
+        <div class="balance-label" style="margin-bottom:4px">Total Deposited</div>
+        <div style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--accent)" id="totalDeposited">€30.00</div>
+      </div>
+      <div id="depositsList"></div>
+      <div class="empty-box" id="depositsEmpty" style="display:none">
+        <div class="big">NO DEPOSITS</div>
+        <p>Tap "Add Money" on the home screen</p>
+      </div>
+    </div>
+
+  </div><!-- pages -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="goTo('home',this)">
+      <div class="nav-badge">
+        <div class="nav-icon">🏠</div>
+        <div class="nav-badge-dot" id="pendingBadge"></div>
+      </div>
+      <div class="nav-label">Home</div>
+    </div>
+    <div class="nav-item" onclick="goTo('stats',this)">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </div>
+    <div class="nav-item" onclick="goTo('history',this)">
+      <div class="nav-icon">📋</div>
+      <div class="nav-label">History</div>
+    </div>
+    <div class="nav-item" onclick="goTo('deposits',this)">
+      <div class="nav-icon">💰</div>
+      <div class="nav-label">Deposits</div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openModal()" style="display:none">+</button>
+
+<!-- BET MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">+ New Bet</div>
+
+    <!-- PHOTO SCAN BUTTON -->
+    <div style="margin-bottom:16px;">
+      <input type="file" id="photoInput" accept="image/jpeg,image/png,image/heic,image/webp" style="display:none" onchange="scanPhoto(this)">
+      <button onclick="document.getElementById('photoInput').click()" style="width:100%;padding:12px;background:var(--surface2);border:1px dashed var(--accent);border-radius:10px;color:var(--accent);font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        📸 SCAN BET PHOTO
+      </button>
+      <div id="scanStatus" style="text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;display:none;">Analyzing photo...</div>
+    </div>
+
+    <div class="form-group">
+      <label>Sport</label>
+      <select id="fSport"><option>Tennis</option><option>Basketball</option><option>Football</option><option>Others</option></select>
+    </div>
+    <div class="form-group">
+      <label>Match / Pick</label>
+      <input id="fMatch" type="text" placeholder="e.g. Djokovic vs Alcaraz">
+    </div>
+    <div class="form-group">
+      <label>Bet Type <span style="color:var(--border);font-size:9px;letter-spacing:0">— optional</span></label>
+      <textarea id="fBetType" placeholder="e.g.&#10;Barça wins&#10;BTTS&#10;Over 2.5" rows="3" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:13px 14px;font-family:'DM Mono',monospace;font-size:14px;outline:none;border-radius:10px;width:100%;resize:none;transition:border-color 0.2s;line-height:1.6;"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Stake (€)</label><input id="fStake" type="number" placeholder="10" min="0" step="0.01" inputmode="decimal"></div>
+      <div class="form-group"><label>Odds</label><input id="fOdds" type="number" placeholder="1.75" min="1" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="form-group">
+      <label>Result</label>
+      <select id="fResult">
+        <option value="P">⏳ Pending</option>
+        <option value="W">✅ Won</option>
+        <option value="L">❌ Lost</option>
+        <option value="V">🔄 Void</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="btnSave" onclick="savePick()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEPOSIT MODAL -->
+<div class="modal-overlay" id="depModalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💰 Add Money</div>
+    <div class="form-group"><label>Amount (€)</label><input id="fDepAmt" type="number" placeholder="50" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeDepModal()">Cancel</button>
+      <button class="btn-save" onclick="saveDeposit()">ADD</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADJUST BALANCE MODAL -->
+<div class="modal-overlay" id="adjustModalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Edit Balance</div>
+    <div class="form-group">
+      <label>New Current Balance (€)</label>
+      <input id="fAdjustAmt" type="number" placeholder="e.g. 38.50" min="0" step="0.01" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label>Reason</label>
+      <input id="fAdjustReason" type="text" placeholder="e.g. Odds change, manual correction...">
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeAdjustModal()">Cancel</button>
+      <button class="btn-save" onclick="saveAdjust()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://lkzqjvoxmjajtrrwneuw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrenFqdm94bWphanRycnduZXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MjY5MTUsImV4cCI6MjA4OTQwMjkxNX0.B5vywaZqBByQWD6sC6Lfms8e0qpkdWM4ueFLruDlwc0';
+const H = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
+
+async function scanPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('scanStatus');
+  status.style.display = 'block';
+  status.style.color = 'var(--muted)';
+  status.textContent = '⟳ Reading photo...';
+
+  try {
+    // Load Tesseract if not loaded
+    if (!window.Tesseract) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+
+    status.textContent = '⟳ Scanning text... (may take a few seconds)';
+
+    const { data: { text } } = await Tesseract.recognize(file, 'eng+spa', {
+      logger: m => { if (m.status === 'recognizing text') status.textContent = `⟳ Scanning... ${Math.round(m.progress * 100)}%`; }
+    });
+
+    console.log('OCR text:', text);
+
+    // Parse the extracted text
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+
+    // Detect match (look for "vs" pattern)
+    let match = null;
+    const vsLine = lines.find(l => /vs\.?/i.test(l));
+    if (vsLine) {
+      match = vsLine.replace(/[^\w\s\.\-]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (match.length > 60) match = match.substring(0, 60);
+    }
+    // If multiple matches found, set as Combinada
+    const vsCount = lines.filter(l => /vs\.?/i.test(l)).length;
+    if (vsCount > 1) match = 'Combinada';
+
+    // Detect odds (decimal number between 1.01 and 99)
+    const oddsMatches = text.match(/\b([1-9]\d?\.?\d{0,2})\b/g) || [];
+    const odds = oddsMatches.map(Number).filter(n => n >= 1.01 && n <= 30).pop() || null;
+
+    // Detect stake (look for € or currency amounts)
+    const stakeMatch = text.match(/(\d+[\.,]\d{2})\s*€|€\s*(\d+[\.,]\d{2})|Importe[:\s]+(\d+[\.,]\d{2})/i);
+    let stake = null;
+    if (stakeMatch) {
+      const raw = stakeMatch[1] || stakeMatch[2] || stakeMatch[3];
+      stake = parseFloat(raw.replace(',', '.'));
+    }
+
+    // Detect sport
+    let sport = 'Others';
+    const lower = text.toLowerCase();
+    if (/tennis|tenis|atp|wta/i.test(lower)) sport = 'Tennis';
+    else if (/football|fútbol|futbol|liga|premier|champions|laliga/i.test(lower)) sport = 'Football';
+    else if (/basket|nba|basketball/i.test(lower)) sport = 'Basketball';
+
+    // Detect bet type
+    let betType = '';
+    const betKeywords = ['BTTS', 'Over', 'Under', 'Handicap', 'Both teams', 'Home Win', 'Away Win', 'Draw',
+      'Más de', 'Menos de', 'Hándicap', 'Ganador', 'Winner', '1er set', '1st set', 'Result', 'Resultado'];
+    const foundBets = lines.filter(l => betKeywords.some(k => l.toLowerCase().includes(k.toLowerCase())));
+    if (foundBets.length > 0) betType = foundBets.slice(0, 3).join('\n');
+
+    if (match) document.getElementById('fMatch').value = match;
+    document.getElementById('fSport').value = sport;
+    if (betType) document.getElementById('fBetType').value = betType;
+    if (stake) document.getElementById('fStake').value = stake;
+    if (odds) document.getElementById('fOdds').value = odds;
+
+    status.textContent = '✓ Done! Check and adjust if needed.';
+    status.style.color = 'var(--win)';
+    setTimeout(() => { status.style.display='none'; }, 3000);
+
+  } catch(e) {
+    console.error('Scan error:', e);
+    status.textContent = '✗ Could not read. Fill in manually.';
+    status.style.color = 'var(--loss)';
+    setTimeout(() => { status.style.display='none'; }, 3000);
+  }
+  input.value = '';
+}
+
+let picks = [], deposits = [];
+let initialBalance = 30;
+let editingId = null;
+let currentPage = 'home';
+let historySport = 'ALL';
+let dateFilter = 'ALL';
+
+// ── PIN ──────────────────────────────────────────────────
+const FIXED_PIN = '1123';
+let pinBuf = '';
+
+function initPin() {
+  document.getElementById('pinSubtitle').textContent = 'Enter PIN';
+}
+
+function pinPress(d) {
+  if (pinBuf.length >= 4) return;
+  pinBuf += d;
+  updateDots();
+  if (pinBuf.length === 4) setTimeout(handlePin, 150);
+}
+
+function pinDel() { pinBuf = pinBuf.slice(0,-1); updateDots(); }
+
+function updateDots() {
+  for (let i=0;i<4;i++) document.getElementById(`d${i}`).classList.toggle('filled', i < pinBuf.length);
+}
+
+function handlePin() {
+  if (pinBuf === FIXED_PIN) { unlock(); }
+  else { showPinErr('Incorrect PIN'); pinBuf=''; updateDots(); }
+}
+
+function showPinErr(m) {
+  const e = document.getElementById('pinError');
+  e.textContent = m; e.classList.add('show');
+  setTimeout(() => e.classList.remove('show'), 2000);
+}
+
+function unlock() {
+  document.getElementById('pinScreen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('fab').style.display = 'flex';
+  loadAll();
+}
+
+// ── NAVIGATION ───────────────────────────────────────────
+function goTo(page, el) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page${page.charAt(0).toUpperCase()+page.slice(1)}`).classList.add('active');
+  el.classList.add('active');
+  const fab = document.getElementById('fab');
+  fab.style.display = page === 'home' ? 'flex' : 'none';
+  if (page === 'stats') renderStats();
+  if (page === 'history') renderHistory();
+  if (page === 'deposits') renderDeposits();
+}
+
+// ── SYNC ─────────────────────────────────────────────────
+function setSync(s) {
+  const d = document.getElementById('syncDot');
+  d.className = 'sync-dot ' + s;
+}
+
+async function loadAll() {
+  setSync('loading');
+  try {
+    const [pr, dr] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/picks?order=id.asc`, {headers:H}),
+      fetch(`${SB_URL}/rest/v1/deposits?order=id.asc`, {headers:H})
+    ]);
+    picks = await pr.json();
+    deposits = await dr.json();
+    initialBalance = +(30 + deposits.reduce((a,b)=>a+b.amount,0)).toFixed(2);
+    setSync('ok');
+    renderHome();
+  } catch(e) { setSync('error'); }
+}
+
+// ── RENDER HOME ──────────────────────────────────────────
+function renderHome() {
+  const pending = picks.filter(p => p.resultado === 'P');
+  const resolved = picks.filter(p => p.resultado !== 'P');
+  const totalProfit = resolved.reduce((a,b) => a + b.ganancia, 0);
+  const pendingStaked = pending.reduce((a,b)=>a+b.apuesta,0);
+  const totalStaked = picks.reduce((a,b)=>a+b.apuesta,0);
+  // Available balance = initial + profits from resolved - pending stakes
+  const currentBal = +(initialBalance + totalProfit - pendingStaked).toFixed(2);
+  const diff = +(currentBal - initialBalance).toFixed(2);
+
+  document.getElementById('balAmount').textContent = fmt(currentBal);
+  document.getElementById('balInitial').textContent = fmt(initialBalance);
+  document.getElementById('balStaked').textContent = fmt(totalStaked);
+  document.getElementById('balPending').textContent = fmt(pendingStaked);
+  const de = document.getElementById('balDiff');
+  de.textContent = (diff>=0?'+':'') + fmt(diff);
+  de.className = 'balance-diff ' + (diff>0?'pos':diff<0?'neg':'neu');
+
+  // Streak
+  const streak = calcStreak();
+  const sv = document.getElementById('streakVal');
+  const se = document.getElementById('streakEmoji');
+  if (streak.count === 0) { sv.textContent='—'; sv.className='streak-val none'; se.textContent='😐'; }
+  else if (streak.type==='W') { sv.textContent=`${streak.count} WON IN A ROW`; sv.className='streak-val win'; se.textContent='🔥'; }
+  else { sv.textContent=`${streak.count} LOST IN A ROW`; sv.className='streak-val loss'; se.textContent='😬'; }
+
+  // Pending badge
+  const badge = document.getElementById('pendingBadge');
+  badge.style.display = pending.length > 0 ? '' : 'none';
+  badge.textContent = pending.length;
+
+  // Pending title
+  document.getElementById('pendingTitle').textContent = `PENDING BETS (${pending.length})`;
+
+  // Picks
+  const list = document.getElementById('homePicks');
+  const empty = document.getElementById('homeEmpty');
+  if (pending.length === 0) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = [...pending].reverse().map(p => pickCard(p)).join('');
+}
+
+// ── RENDER STATS ─────────────────────────────────────────
+function renderStats() {
+  const filtered = applyDate(picks.filter(p => p.resultado !== 'P'));
+  const closed = filtered.filter(p => p.resultado !== 'V');
+  const wins = closed.filter(p => p.resultado === 'W').length;
+  const losses = closed.filter(p => p.resultado === 'L').length;
+  const winRate = closed.length > 0 ? ((wins/closed.length)*100).toFixed(1) : '0.0';
+  const totalStaked = filtered.reduce((a,b)=>a+b.apuesta,0);
+  const totalProfit = filtered.reduce((a,b)=>a+b.ganancia,0);
+  const yield_ = totalStaked > 0 ? ((totalProfit/totalStaked)*100).toFixed(1) : '0.0';
+  const roi = fmt(totalProfit);
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="lbl">Total Picks</div><div class="val white">${filtered.length}</div></div>
+    <div class="stat-card"><div class="lbl">Won</div><div class="val green">${wins}</div></div>
+    <div class="stat-card"><div class="lbl">Lost</div><div class="val red">${losses}</div></div>
+    <div class="stat-card"><div class="lbl">Win Rate</div><div class="val ${parseFloat(winRate)>=50?'green':'red'}">${winRate}%</div></div>
+    <div class="stat-card"><div class="lbl">Yield</div><div class="val ${parseFloat(yield_)>=0?'blue':'red'}">${yield_}%</div></div>
+    <div class="stat-card"><div class="lbl">Net Profit</div><div class="val ${totalProfit>=0?'teal':'red'}">${roi}</div></div>
+  `;
+
+  drawChart();
+}
+
+// ── RENDER HISTORY ────────────────────────────────────────
+function renderHistory() {
+  let resolved = picks.filter(p => p.resultado !== 'P');
+  if (historySport !== 'ALL') resolved = resolved.filter(p => p.deporte === historySport);
+  const list = document.getElementById('historyPicks');
+  const empty = document.getElementById('historyEmpty');
+  if (resolved.length === 0) { list.innerHTML=''; empty.style.display='block'; }
+  else { empty.style.display='none'; list.innerHTML=[...resolved].reverse().map(p=>pickCard(p)).join(''); }
+  if (historyView === 'calendar') renderCalendar();
+}
+
+function setHistorySport(sport, el) {
+  historySport = sport;
+  document.querySelectorAll('.sport-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderHistory();
+}
+
+// ── RENDER DEPOSITS ───────────────────────────────────────
+function renderDeposits() {
+  const total = deposits.reduce((a,b)=>a+b.amount,0);
+  document.getElementById('totalDeposited').textContent = fmt(30 + total);
+  const list = document.getElementById('depositsList');
+  const empty = document.getElementById('depositsEmpty');
+  if (deposits.length === 0) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = [...deposits].reverse().map((d,i) => {
+    const realIdx = deposits.length - 1 - i;
+    const fecha = new Date(d.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const hora = new Date(d.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const canEdit = !d.reason && Date.now() - new Date(d.created_at).getTime() < 300000;
+    const minsLeft = Math.ceil((300000 - (Date.now() - new Date(d.created_at).getTime())) / 60000);
+    const isAdjust = d.reason && d.reason.startsWith('⚙️');
+    const amtColor = d.amount >= 0 ? 'var(--accent)' : 'var(--loss)';
+    const amtPrefix = d.amount >= 0 ? '+' : '';
+    return `
+      <div class="deposit-card" style="${isAdjust ? 'border-color:rgba(129,140,248,0.2);' : ''}">
+        <div>
+          <div class="dep-amount" style="color:${amtColor}">${amtPrefix}${fmt(d.amount)}</div>
+          <div class="dep-lbl">${isAdjust ? d.reason : '💰 Deposit'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="dep-date">${fecha}<br>${hora}</div>
+          ${canEdit ? `<button class="icon-btn" onclick="editDeposit(${realIdx})" title="Edit (${minsLeft}m left)">✏️</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── CHART ─────────────────────────────────────────────────
+function drawChart() {
+  const svg = document.getElementById('chartSvg');
+  const resolved = applyDate(picks.filter(p => p.resultado !== 'P')).sort((a,b)=>a.id-b.id);
+  if (resolved.length < 2) { svg.innerHTML='<text x="150" y="45" text-anchor="middle" fill="#6b7080" font-size="10" font-family="DM Mono">Not enough data yet</text>'; return; }
+  let bal = initialBalance;
+  const pts = [bal];
+  resolved.forEach(p => { bal = +(bal+p.ganancia).toFixed(2); pts.push(bal); });
+  const min = Math.min(...pts), max = Math.max(...pts), range = max-min||1;
+  const W=300, H=80, pad=6;
+  const xs = pts.map((_,i) => pad + (i/(pts.length-1))*(W-pad*2));
+  const ys = pts.map(v => H-pad-((v-min)/range)*(H-pad*2));
+  const path = xs.map((x,i)=>`${i===0?'M':'L'}${x},${ys[i]}`).join(' ');
+  const fill = `${path} L${xs[xs.length-1]},${H} L${xs[0]},${H} Z`;
+  const color = pts[pts.length-1]>=pts[0] ? '#3ddc84' : '#ff4d6d';
+  svg.innerHTML = `
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.3"/><stop offset="100%" stop-color="${color}" stop-opacity="0.0"/></linearGradient></defs>
+    <path d="${fill}" fill="url(#cg)"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+
+// ── STREAK ────────────────────────────────────────────────
+function calcStreak() {
+  const res = picks.filter(p => p.resultado !== 'P' && p.resultado !== 'V').sort((a,b)=>a.id-b.id);
+  if (!res.length) return {count:0,type:null};
+  const last = res[res.length-1].resultado;
+  let count = 0;
+  for (let i=res.length-1;i>=0;i--) { if(res[i].resultado===last) count++; else break; }
+  return {count, type: last};
+}
+
+// ── PICK CARD ─────────────────────────────────────────────
+function pickCard(p) {
+  const idx = picks.indexOf(p)+1;
+  const isPos = p.ganancia >= 0;
+  const gc = p.resultado==='P'?'neu':isPos?'pos':'neg';
+  const gt = p.resultado==='P'?'—':(isPos?'+':'')+fmt(p.ganancia);
+  const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '';
+  const rl = p.resultado==='P'?'PEND':p.resultado==='W'?'WON':p.resultado==='L'?'LOST':'VOID';
+  return `
+    <div class="pick-card">
+      <div class="pick-top">
+        <div class="pick-left">
+          <div class="pick-match">${p.partido}</div>
+          <div class="pick-meta">
+            <span class="sport-badge ${sportClass(p.deporte)}">${sportIcon(p.deporte)} ${p.deporte}</span>
+            <span class="pick-num">#${idx}</span>
+          </div>
+          ${p.betType ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;">${p.betType.split('\n').filter(l=>l.trim()).map(l=>`<span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);background:rgba(45,212,191,0.1);padding:2px 8px;border-radius:4px;">${l.trim()}</span>`).join('')}</div>` : ''}
+          ${fecha?`<div class="pick-date-txt">📅 ${fecha}</div>`:''}
+        </div>
+        <div class="pick-right">
+          <span class="result-badge res-${p.resultado}">${rl}</span>
+          <div class="pick-profit ${gc}">${gt}</div>
+        </div>
+      </div>
+      <div class="pick-bottom">
+        <div class="pick-detail">€${p.apuesta.toFixed(2)} · Odds <span>${p.cuota.toFixed(2)}</span></div>
+        <div style="display:flex;gap:4px">
+          <button class="icon-btn" onclick="editPick(${p.id})">✏️</button>
+          <button class="icon-btn" onclick="deletePick(${p.id})">🗑</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function sportClass(s) {
+  if(s==='Tennis') return 'sport-tennis';
+  if(s==='Basketball') return 'sport-basket';
+  if(s==='Football') return 'sport-football';
+  return 'sport-others';
+}
+function sportIcon(s) {
+  if(s==='Tennis') return '🎾';
+  if(s==='Basketball') return '🏀';
+  if(s==='Football') return '⚽';
+  return '🎯';
+}
+function fmt(n) { return (n<0?'-€':'€')+Math.abs(n).toFixed(2); }
+function applyDate(list) {
+  if (dateFilter==='ALL') return list;
+  const cutoff = Date.now() - parseInt(dateFilter)*86400000;
+  return list.filter(p => p.created_at && new Date(p.created_at).getTime()>=cutoff);
+}
+function setDateFilter(val, el) {
+  dateFilter = val;
+  document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderStats();
+}
+
+// ── PICKS CRUD ────────────────────────────────────────────
+function openModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '+ New Bet';
+  document.getElementById('btnSave').textContent = 'SAVE';
+  ['fMatch','fStake','fOdds','fBetType'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fSport').selectedIndex=0;
+  document.getElementById('fResult').selectedIndex=0;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function editPick(id) {
+  const p = picks.find(x=>x.id===id); if(!p) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent='✏️ Edit Bet';
+  document.getElementById('btnSave').textContent='UPDATE';
+  document.getElementById('fSport').value=p.deporte;
+  document.getElementById('fMatch').value=p.partido==='—'?'':p.partido;
+  document.getElementById('fBetType').value=p.betType||'';
+  document.getElementById('fStake').value=p.apuesta;
+  document.getElementById('fOdds').value=p.cuota;
+  document.getElementById('fResult').value=p.resultado;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow=''; editingId=null;
+}
+async function savePick() {
+  const btn=document.getElementById('btnSave');
+  btn.disabled=true; btn.textContent='...';
+  const stake=parseFloat(document.getElementById('fStake').value)||0;
+  const odds=parseFloat(document.getElementById('fOdds').value)||1;
+  const result=document.getElementById('fResult').value;
+  let profit=0;
+  if(result==='W') profit=+(stake*(odds-1)).toFixed(2);
+  else if(result==='L') profit=-stake;
+  const data={deporte:document.getElementById('fSport').value,partido:document.getElementById('fMatch').value||'—',betType:document.getElementById('fBetType').value||'',apuesta:stake,cuota:odds,resultado:result,ganancia:profit};
+  try {
+    if(editingId!==null) {
+      await fetch(`${SB_URL}/rest/v1/picks?id=eq.${editingId}`,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(data)});
+      const idx=picks.findIndex(x=>x.id===editingId);
+      if(idx!==-1) picks[idx]={...picks[idx],...data};
+    } else {
+      data.id=Date.now(); data.created_at=new Date().toISOString();
+      await fetch(`${SB_URL}/rest/v1/picks`,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(data)});
+      picks.push(data);
+    }
+    closeModal(); renderHome();
+    if(currentPage==='stats') renderStats();
+    if(currentPage==='history') renderHistory();
+  } catch(e) { alert('Error saving.'); }
+  btn.disabled=false; btn.textContent=editingId?'UPDATE':'SAVE';
+}
+async function deletePick(id) {
+  if(!confirm('Delete this bet?')) return;
+  await fetch(`${SB_URL}/rest/v1/picks?id=eq.${id}`,{method:'DELETE',headers:H});
+  picks=picks.filter(p=>p.id!==id);
+  renderHome();
+  if(currentPage==='history') renderHistory();
+}
+
+// ── DEPOSITS CRUD ─────────────────────────────────────────
+function openDepositModal() {
+  document.getElementById('fDepAmt').value='';
+  document.getElementById('depModalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDepModal() {
+  document.getElementById('depModalOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+async function saveDeposit() {
+  const amount=parseFloat(document.getElementById('fDepAmt').value);
+  if(isNaN(amount)||amount<=0){alert('Enter a valid amount.');return;}
+  const dep={id:Date.now(),amount,created_at:new Date().toISOString(),reason:''};
+  await fetch(`${SB_URL}/rest/v1/deposits`,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(dep)});
+  deposits.push(dep);
+  initialBalance=+(initialBalance+amount).toFixed(2);
+  closeDepModal(); renderHome();
+}
+async function editDeposit(idx) {
+  const val=prompt('Edit deposit amount (€):'); if(!val) return;
+  const newAmt=parseFloat(val); if(isNaN(newAmt)||newAmt<=0){alert('Invalid amount.');return;}
+  const dep=deposits[idx];
+  await fetch(`${SB_URL}/rest/v1/deposits?id=eq.${dep.id}`,{method:'PATCH',headers:{...H},body:JSON.stringify({amount:newAmt})});
+  initialBalance=+(initialBalance+(newAmt-dep.amount)).toFixed(2);
+  deposits[idx].amount=newAmt;
+  renderHome(); renderDeposits();
+}
+
+function openAdjustModal() {
+  const pending = picks.filter(p => p.resultado === 'P');
+  const resolved = picks.filter(p => p.resultado !== 'P');
+  const totalProfit = resolved.reduce((a,b) => a + b.ganancia, 0);
+  const pendingStaked = pending.reduce((a,b) => a + b.apuesta, 0);
+  const currentBal = +(initialBalance + totalProfit - pendingStaked).toFixed(2);
+  document.getElementById('fAdjustAmt').value = currentBal;
+  document.getElementById('fAdjustReason').value = '';
+  document.getElementById('adjustModalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeAdjustModal() {
+  document.getElementById('adjustModalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+async function saveAdjust() {
+  const newBal = parseFloat(document.getElementById('fAdjustAmt').value);
+  const reason = document.getElementById('fAdjustReason').value || 'Manual adjustment';
+  if (isNaN(newBal) || newBal < 0) { alert('Enter a valid amount.'); return; }
+  const pending = picks.filter(p => p.resultado === 'P');
+  const resolved = picks.filter(p => p.resultado !== 'P');
+  const totalProfit = resolved.reduce((a,b) => a + b.ganancia, 0);
+  const pendingStaked = pending.reduce((a,b) => a + b.apuesta, 0);
+  const currentBal = +(initialBalance + totalProfit - pendingStaked).toFixed(2);
+  const diff = +(newBal - currentBal).toFixed(2);
+  const dep = { id: Date.now(), amount: diff, created_at: new Date().toISOString(), reason: `⚙️ Balance edited: ${reason}` };
+  try {
+    await fetch(`${SB_URL}/rest/v1/deposits`, { method:'POST', headers:{...H,'Prefer':'return=representation'}, body:JSON.stringify(dep) });
+    deposits.push(dep);
+    initialBalance = +(initialBalance + diff).toFixed(2);
+    closeAdjustModal();
+    renderHome();
+    if (currentPage === 'deposits') renderDeposits();
+  } catch(e) { alert('Error saving adjustment.'); }
+}
+
+// ── HISTORY VIEW TOGGLE ───────────────────────────────────
+let historyView = 'list';
+let calDate = new Date();
+let calSelected = null;
+
+function setHistoryView(view, el) {
+  historyView = view;
+  document.getElementById('historyListView').style.display = view === 'list' ? 'block' : 'none';
+  document.getElementById('historyCalView').style.display = view === 'calendar' ? 'block' : 'none';
+  document.getElementById('btnListView').style.background = view === 'list' ? 'var(--accent)' : 'var(--surface)';
+  document.getElementById('btnListView').style.color = view === 'list' ? '#0a0c10' : 'var(--muted)';
+  document.getElementById('btnListView').style.border = view === 'list' ? 'none' : '1px solid var(--border)';
+  document.getElementById('btnCalView').style.background = view === 'calendar' ? 'var(--accent)' : 'var(--surface)';
+  document.getElementById('btnCalView').style.color = view === 'calendar' ? '#0a0c10' : 'var(--muted)';
+  document.getElementById('btnCalView').style.border = view === 'calendar' ? 'none' : '1px solid var(--border)';
+  if (view === 'calendar') renderCalendar();
+}
+
+function calPrev() {
+  calDate = new Date(calDate.getFullYear(), calDate.getMonth() - 1, 1);
+  calSelected = null;
+  renderCalendar();
+}
+
+function calNext() {
+  calDate = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 1);
+  calSelected = null;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const today = new Date();
+
+  document.getElementById('calMonth').textContent =
+    calDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
+
+  const resolved = picks.filter(p => p.resultado !== 'P' && p.created_at);
+
+  // Build map: dateKey → picks[]
+  const dayMap = {};
+  resolved.forEach(p => {
+    const d = new Date(p.created_at);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const key = d.getDate();
+      if (!dayMap[key]) dayMap[key] = [];
+      dayMap[key].push(p);
+    }
+  });
+
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startOffset = (firstDay + 6) % 7; // Mon-first
+
+  const labels = ['M','T','W','T','F','S','S'];
+  let html = labels.map(l => `<div class="cal-day-label">${l}</div>`).join('');
+
+  // Empty cells before month start
+  for (let i = 0; i < startOffset; i++) html += '<div class="cal-day"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayPicks = dayMap[d] || [];
+    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    const isSelected = calSelected === d;
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (isSelected) cls += ' selected';
+    if (dayPicks.length > 0) {
+      cls += ' has-picks';
+      const allWon = dayPicks.every(p => p.resultado === 'W');
+      const allLost = dayPicks.every(p => p.resultado === 'L');
+      if (allWon) cls += ' all-won';
+      else if (allLost) cls += ' all-lost';
+      else cls += ' mixed';
+    }
+    const onclick = dayPicks.length > 0 ? `onclick="selectCalDay(${d})"` : '';
+    const dot = dayPicks.length > 0 ? '<div class="cal-dot"></div>' : '';
+    html += `<div class="${cls}" ${onclick}>${d}${dot}</div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+  renderCalDetail();
+}
+
+function selectCalDay(d) {
+  calSelected = calSelected === d ? null : d;
+  renderCalendar();
+}
+
+function renderCalDetail() {
+  const detail = document.getElementById('calPicksDetail');
+  if (!calSelected) { detail.innerHTML = ''; return; }
+
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const dayPicks = picks.filter(p => {
+    if (!p.created_at || p.resultado === 'P') return false;
+    const d = new Date(p.created_at);
+    return d.getFullYear() === year && d.getMonth() === month && d.getDate() === calSelected;
+  });
+
+  if (dayPicks.length === 0) { detail.innerHTML = ''; return; }
+
+  const dateStr = new Date(year, month, calSelected).toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
+  detail.innerHTML = `<div class="cal-selected-title">📅 ${dateStr}</div>` +
+    dayPicks.map(p => pickCard(p)).join('');
+}
+
+document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('depModalOverlay').addEventListener('click',function(e){if(e.target===this)closeDepModal();});
+document.getElementById('adjustModalOverlay').addEventListener('click',function(e){if(e.target===this)closeAdjustModal();});
+
+initPin();
+</script>
+</body>
+</html>
