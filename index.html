@@ -353,23 +353,27 @@
     <div class="modal-handle"></div>
     <div class="modal-title" id="modalTitle">+ New Bet</div>
 
-    <!-- PHOTO SCAN BUTTON -->
-    <div style="margin-bottom:16px;">
-      <input type="file" id="photoInput" accept="image/jpeg,image/png,image/heic,image/webp" style="display:none" onchange="scanPhoto(this)">
-      <button onclick="document.getElementById('photoInput').click()" style="width:100%;padding:12px;background:var(--surface2);border:1px dashed var(--accent);border-radius:10px;color:var(--accent);font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        📸 SCAN BET PHOTO
-      </button>
-      <div id="scanStatus" style="text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;display:none;">Analyzing photo...</div>
-    </div>
-
     <div class="form-group">
       <label>Sport</label>
       <select id="fSport"><option>Tennis</option><option>Basketball</option><option>Football</option><option>Others</option></select>
     </div>
+
     <div class="form-group">
       <label>Match / Pick</label>
-      <input id="fMatch" type="text" placeholder="e.g. Djokovic vs Alcaraz">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+        <button onclick="setMatchMode('teams')" id="btnModeTeams" style="flex:1;padding:8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:var(--accent);color:#0a0c10;border:none;cursor:pointer;">⚽ Teams</button>
+        <button onclick="setMatchMode('combinada')" id="btnModeCombinada" style="flex:1;padding:8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:var(--surface);color:var(--muted);border:1px solid var(--border);cursor:pointer;">🔗 Combinada</button>
+      </div>
+      <div id="matchTeamsInput" style="display:flex;align-items:center;gap:8px;">
+        <input id="fTeam1" type="text" placeholder="Team / Player A" style="flex:1;">
+        <span style="font-family:'Bebas Neue',cursive;font-size:18px;color:var(--muted);flex-shrink:0;">VS</span>
+        <input id="fTeam2" type="text" placeholder="Team / Player B" style="flex:1;">
+      </div>
+      <div id="matchCombinadaInput" style="display:none;">
+        <input id="fMatch" type="text" value="Combinada" placeholder="Combinada" readonly style="background:var(--surface2);color:var(--muted);cursor:default;">
+      </div>
     </div>
+
     <div class="form-group">
       <label>Bet Type <span style="color:var(--border);font-size:9px;letter-spacing:0">— optional</span></label>
       <textarea id="fBetType" placeholder="e.g.&#10;Barça wins&#10;BTTS&#10;Over 2.5" rows="3" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:13px 14px;font-family:'DM Mono',monospace;font-size:14px;outline:none;border-radius:10px;width:100%;resize:none;transition:border-color 0.2s;line-height:1.6;"></textarea>
@@ -432,98 +436,25 @@ const SB_URL = 'https://lkzqjvoxmjajtrrwneuw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrenFqdm94bWphanRycnduZXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MjY5MTUsImV4cCI6MjA4OTQwMjkxNX0.B5vywaZqBByQWD6sC6Lfms8e0qpkdWM4ueFLruDlwc0';
 const H = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
 
-async function scanPhoto(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const status = document.getElementById('scanStatus');
-  status.style.display = 'block';
-  status.style.color = 'var(--muted)';
-  status.textContent = '⟳ Reading photo...';
-
-  try {
-    // Load Tesseract if not loaded
-    if (!window.Tesseract) {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js';
-        s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
-    }
-
-    status.textContent = '⟳ Scanning text... (may take a few seconds)';
-
-    const { data: { text } } = await Tesseract.recognize(file, 'eng+spa', {
-      logger: m => { if (m.status === 'recognizing text') status.textContent = `⟳ Scanning... ${Math.round(m.progress * 100)}%`; }
-    });
-
-    console.log('OCR text:', text);
-
-    // Parse the extracted text
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-
-    // Detect match (look for "vs" pattern)
-    let match = null;
-    const vsLine = lines.find(l => /vs\.?/i.test(l));
-    if (vsLine) {
-      match = vsLine.replace(/[^\w\s\.\-]/g, ' ').replace(/\s+/g, ' ').trim();
-      if (match.length > 60) match = match.substring(0, 60);
-    }
-    // If multiple matches found, set as Combinada
-    const vsCount = lines.filter(l => /vs\.?/i.test(l)).length;
-    if (vsCount > 1) match = 'Combinada';
-
-    // Detect odds (decimal number between 1.01 and 99)
-    const oddsMatches = text.match(/\b([1-9]\d?\.?\d{0,2})\b/g) || [];
-    const odds = oddsMatches.map(Number).filter(n => n >= 1.01 && n <= 30).pop() || null;
-
-    // Detect stake (look for € or currency amounts)
-    const stakeMatch = text.match(/(\d+[\.,]\d{2})\s*€|€\s*(\d+[\.,]\d{2})|Importe[:\s]+(\d+[\.,]\d{2})/i);
-    let stake = null;
-    if (stakeMatch) {
-      const raw = stakeMatch[1] || stakeMatch[2] || stakeMatch[3];
-      stake = parseFloat(raw.replace(',', '.'));
-    }
-
-    // Detect sport
-    let sport = 'Others';
-    const lower = text.toLowerCase();
-    if (/tennis|tenis|atp|wta/i.test(lower)) sport = 'Tennis';
-    else if (/football|fútbol|futbol|liga|premier|champions|laliga/i.test(lower)) sport = 'Football';
-    else if (/basket|nba|basketball/i.test(lower)) sport = 'Basketball';
-
-    // Detect bet type
-    let betType = '';
-    const betKeywords = ['BTTS', 'Over', 'Under', 'Handicap', 'Both teams', 'Home Win', 'Away Win', 'Draw',
-      'Más de', 'Menos de', 'Hándicap', 'Ganador', 'Winner', '1er set', '1st set', 'Result', 'Resultado'];
-    const foundBets = lines.filter(l => betKeywords.some(k => l.toLowerCase().includes(k.toLowerCase())));
-    if (foundBets.length > 0) betType = foundBets.slice(0, 3).join('\n');
-
-    if (match) document.getElementById('fMatch').value = match;
-    document.getElementById('fSport').value = sport;
-    if (betType) document.getElementById('fBetType').value = betType;
-    if (stake) document.getElementById('fStake').value = stake;
-    if (odds) document.getElementById('fOdds').value = odds;
-
-    status.textContent = '✓ Done! Check and adjust if needed.';
-    status.style.color = 'var(--win)';
-    setTimeout(() => { status.style.display='none'; }, 3000);
-
-  } catch(e) {
-    console.error('Scan error:', e);
-    status.textContent = '✗ Could not read. Fill in manually.';
-    status.style.color = 'var(--loss)';
-    setTimeout(() => { status.style.display='none'; }, 3000);
-  }
-  input.value = '';
-}
-
 let picks = [], deposits = [];
 let initialBalance = 30;
 let editingId = null;
 let currentPage = 'home';
 let historySport = 'ALL';
 let dateFilter = 'ALL';
+let matchMode = 'teams';
+
+function setMatchMode(mode) {
+  matchMode = mode;
+  document.getElementById('matchTeamsInput').style.display = mode === 'teams' ? 'flex' : 'none';
+  document.getElementById('matchCombinadaInput').style.display = mode === 'combinada' ? 'block' : 'none';
+  document.getElementById('btnModeTeams').style.background = mode === 'teams' ? 'var(--accent)' : 'var(--surface)';
+  document.getElementById('btnModeTeams').style.color = mode === 'teams' ? '#0a0c10' : 'var(--muted)';
+  document.getElementById('btnModeTeams').style.border = mode === 'teams' ? 'none' : '1px solid var(--border)';
+  document.getElementById('btnModeCombinada').style.background = mode === 'combinada' ? 'var(--accent)' : 'var(--surface)';
+  document.getElementById('btnModeCombinada').style.color = mode === 'combinada' ? '#0a0c10' : 'var(--muted)';
+  document.getElementById('btnModeCombinada').style.border = mode === 'combinada' ? 'none' : '1px solid var(--border)';
+}
 
 // ── PIN ──────────────────────────────────────────────────
 const FIXED_PIN = '1123';
@@ -812,9 +743,10 @@ function openModal() {
   editingId = null;
   document.getElementById('modalTitle').textContent = '+ New Bet';
   document.getElementById('btnSave').textContent = 'SAVE';
-  ['fMatch','fStake','fOdds','fBetType'].forEach(id=>document.getElementById(id).value='');
+  ['fTeam1','fTeam2','fStake','fOdds','fBetType'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('fSport').selectedIndex=0;
   document.getElementById('fResult').selectedIndex=0;
+  setMatchMode('teams');
   document.getElementById('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -824,11 +756,19 @@ function editPick(id) {
   document.getElementById('modalTitle').textContent='✏️ Edit Bet';
   document.getElementById('btnSave').textContent='UPDATE';
   document.getElementById('fSport').value=p.deporte;
-  document.getElementById('fMatch').value=p.partido==='—'?'':p.partido;
   document.getElementById('fBetType').value=p.betType||'';
   document.getElementById('fStake').value=p.apuesta;
   document.getElementById('fOdds').value=p.cuota;
   document.getElementById('fResult').value=p.resultado;
+  // Detect if combinada or teams
+  if (p.partido === 'Combinada' || p.partido === '—') {
+    setMatchMode('combinada');
+  } else {
+    const parts = p.partido.split(' vs ');
+    setMatchMode('teams');
+    document.getElementById('fTeam1').value = parts[0] || '';
+    document.getElementById('fTeam2').value = parts[1] || '';
+  }
   document.getElementById('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -845,7 +785,16 @@ async function savePick() {
   let profit=0;
   if(result==='W') profit=+(stake*(odds-1)).toFixed(2);
   else if(result==='L') profit=-stake;
-  const data={deporte:document.getElementById('fSport').value,partido:document.getElementById('fMatch').value||'—',betType:document.getElementById('fBetType').value||'',apuesta:stake,cuota:odds,resultado:result,ganancia:profit};
+  // Build match name
+  let partido;
+  if (matchMode === 'combinada') {
+    partido = 'Combinada';
+  } else {
+    const t1 = document.getElementById('fTeam1').value.trim();
+    const t2 = document.getElementById('fTeam2').value.trim();
+    partido = t1 && t2 ? `${t1} vs ${t2}` : t1 || t2 || '—';
+  }
+  const data={deporte:document.getElementById('fSport').value,partido,betType:document.getElementById('fBetType').value||'',apuesta:stake,cuota:odds,resultado:result,ganancia:profit};
   try {
     if(editingId!==null) {
       await fetch(`${SB_URL}/rest/v1/picks?id=eq.${editingId}`,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(data)});
