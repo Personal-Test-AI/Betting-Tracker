@@ -242,6 +242,9 @@
     <div onclick="goToMenu('deposits')" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;border-radius:10px;margin:0 8px;">
       <span style="font-size:20px;">💰</span><span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;">Deposits</span>
     </div>
+    <div onclick="goToMenu('plan')" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;border-radius:10px;margin:0 8px;">
+      <span style="font-size:20px;">🎯</span><span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;">Plan</span>
+    </div>
   </div>
 
   <div class="pages">
@@ -359,6 +362,18 @@
       <div class="empty-box" id="depositsEmpty" style="display:none">
         <div class="big">NO DEPOSITS</div>
         <p>Use Add Money to register a deposit</p>
+      </div>
+    </div>
+
+    <!-- PLAN -->
+    <div class="page" id="pagePlan">
+      <div style="padding:16px;">
+        <div style="display:flex;gap:8px;margin-bottom:20px;">
+          <button onclick="setPlan('base')" id="btnPlanBase" style="flex:1;padding:10px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:var(--accent);color:#0a0c10;border:none;cursor:pointer;">📊 Base</button>
+          <button onclick="setPlan('aggressive')" id="btnPlanAgg" style="flex:1;padding:10px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:var(--surface);color:var(--muted);border:1px solid var(--border);cursor:pointer;">🔥 Aggressive</button>
+        </div>
+        <div id="planBase"></div>
+        <div id="planAggressive" style="display:none;"></div>
       </div>
     </div>
 
@@ -576,6 +591,94 @@ function generateIcon() {
   document.head.appendChild(link);
 }
 
+// ── PLAN ─────────────────────────────────────────────────
+function planRule(icon, label, value) {
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--muted);">${icon} ${label}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--text);">${value}</div>
+  </div>`;
+}
+function planRuleRed(icon, label) {
+  return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--muted);">${icon} ${label}</div>`;
+}
+function oddsRow(odds, stake, profit, color) {
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:${color};">${odds}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text);">${stake}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--win);">${profit}</div>
+  </div>`;
+}
+function setPlan(type) {
+  document.getElementById('planBase').style.display = type === 'base' ? 'block' : 'none';
+  document.getElementById('planAggressive').style.display = type === 'aggressive' ? 'block' : 'none';
+  document.getElementById('btnPlanBase').style.background = type === 'base' ? 'var(--accent)' : 'var(--surface)';
+  document.getElementById('btnPlanBase').style.color = type === 'base' ? '#0a0c10' : 'var(--muted)';
+  document.getElementById('btnPlanBase').style.border = type === 'base' ? 'none' : '1px solid var(--border)';
+  document.getElementById('btnPlanAgg').style.background = type === 'aggressive' ? 'var(--loss)' : 'var(--surface)';
+  document.getElementById('btnPlanAgg').style.color = type === 'aggressive' ? '#fff' : 'var(--muted)';
+  document.getElementById('btnPlanAgg').style.border = type === 'aggressive' ? 'none' : '1px solid var(--border)';
+
+  if (type === 'base' && !document.getElementById('planBase').innerHTML.trim()) {
+    document.getElementById('planBase').innerHTML = `
+      <div style="background:var(--surface);border:1px solid rgba(45,212,191,0.2);border-radius:16px;padding:16px;margin-bottom:12px;">
+        <div style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--accent);margin-bottom:4px;">📊 Plan Base</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">Conservative · Low risk</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Core Rules</div>
+        ${planRule('💰','Bank','100 RON')}${planRule('🎯','Stake per pick','5 RON (5%)')}${planRule('📅','Max picks/day','1')}${planRule('📈','Scale up at','150 RON → 7 RON/pick')}${planRule('📉','Scale down at','70 RON → 3 RON/pick')}
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Odds Distribution</div>
+        ${oddsRow('1.50 – 1.65','7 RON','+3.5 – 4.5 RON','var(--win)')}${oddsRow('1.65 – 1.90','5 RON','+3.2 – 4.5 RON','var(--win)')}${oddsRow('1.90 – 2.20','4 RON','+3.6 – 4.8 RON','var(--void)')}${oddsRow('2.20 – 2.50','3 RON','+3.6 – 4.5 RON','var(--loss)')}
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Weekly Schedule</div>
+        ${planRule('⚽','Mon / Wed / Fri','Football 1.65–1.90')}${planRule('🏀','Tue / Thu','Basketball props 1.50–1.70')}${planRule('🎯','Saturday','Special pick 1.90–2.50')}${planRule('😴','Sunday','Rest day')}
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">🌙 Dreamer Rules</div>
+        ${planRule('💸','Max stake','2 RON')}${planRule('📆','Frequency','Max 1x per week')}${planRule('🎰','Min odds','300+')}
+      </div>
+      <div style="background:var(--surface);border:1px solid rgba(61,220,132,0.2);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">🎯 Realistic Target</div>
+        ${planRule('📅','Month 1','+40–60 RON')}${planRule('📅','Month 3','180–200 RON bank')}
+      </div>
+      <div style="background:var(--surface);border:1px solid rgba(255,77,109,0.2);border-radius:12px;padding:14px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--loss);text-transform:uppercase;margin-bottom:10px;">❌ Forbidden</div>
+        ${planRuleRed('🚫','ALL-IN ever')}${planRuleRed('🚫','More than 1 pick per match')}${planRuleRed('🚫','Chasing losses')}${planRuleRed('🚫','International friendlies')}
+      </div>`;
+  }
+
+  if (type === 'aggressive' && !document.getElementById('planAggressive').innerHTML.trim()) {
+    document.getElementById('planAggressive').innerHTML = `
+      <div style="background:var(--surface);border:1px solid rgba(255,77,109,0.3);border-radius:16px;padding:16px;margin-bottom:12px;">
+        <div style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--loss);margin-bottom:4px;">🔥 Plan Aggressive</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">High risk · High reward</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Core Rules</div>
+        ${planRule('💰','Bank','100 RON')}${planRule('🎯','Stake per pick','10 RON (10%)')}${planRule('📅','Max picks/day','2')}${planRule('📈','Scale up at','150 RON → 15 RON/pick')}${planRule('📉','Scale down at','70 RON → 5 RON/pick')}
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Odds Distribution</div>
+        ${oddsRow('1.70 – 1.90','10 RON','+7 – 9 RON','var(--win)')}${oddsRow('1.90 – 2.20','8 RON','+7.2 – 9.6 RON','var(--void)')}${oddsRow('2.20 – 2.50','6 RON','+7.2 – 9 RON','var(--loss)')}
+      </div>
+      <div style="background:var(--surface);border:1px solid rgba(61,220,132,0.2);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">🎯 Realistic Target</div>
+        ${planRule('📅','Month 1','+60–80 RON → ~170 RON')}${planRule('📅','Month 2','+100 RON → ~270 RON')}${planRule('📅','Month 3','~400 RON bank')}
+      </div>
+      <div style="background:rgba(255,77,109,0.05);border:1px solid rgba(255,77,109,0.3);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--loss);text-transform:uppercase;margin-bottom:6px;">⚠️ Risk Warning</div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:var(--muted);line-height:1.6;">5 consecutive losses = <span style="color:var(--loss);font-weight:600;">-50 RON</span> = half your bank gone.</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid rgba(255,77,109,0.2);border-radius:12px;padding:14px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--loss);text-transform:uppercase;margin-bottom:10px;">❌ Forbidden</div>
+        ${planRuleRed('🚫','ALL-IN ever')}${planRuleRed('🚫','More than 2 picks per day')}${planRuleRed('🚫','Chasing losses')}${planRuleRed('🚫','International friendlies')}
+      </div>`;
+  }
+}
+
 // ── HAMBURGER MENU ───────────────────────────────────────
 let menuOpen = false;
 function toggleMenu() {
@@ -595,9 +698,8 @@ function goToMenu(page) {
   if (page === 'analytics') renderAnalytics();
   if (page === 'history') renderHistory();
   if (page === 'deposits') renderDeposits();
+  if (page === 'plan') setPlan('base');
 }
-
-// ── NAVIGATION ───────────────────────────────────────────
 function goTo(page, el) {
   currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
