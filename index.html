@@ -224,26 +224,9 @@
       <div class="balance-card">
         <div class="balance-header">
           <div class="balance-label">Current Balance</div>
-          <div style="display:flex;gap:6px;">
-            <button class="add-btn" onclick="openDepositModal()">💰 Add Money</button>
-            <button class="add-btn" style="background:var(--surface);color:var(--accent);border:1px solid var(--accent);" onclick="openAdjustModal()">✏️ Edit</button>
-          </div>
         </div>
         <div class="balance-amount" id="balAmount">100 RON</div>
         <div class="balance-diff neu" id="balDiff">+0.00 RON</div>
-        <div class="balance-meta">
-          <div class="bm-item"><div class="bm-lbl">Initial</div><div class="bm-val" id="balInitial">100 RON</div></div>
-          <div class="bm-item"><div class="bm-lbl">Staked</div><div class="bm-val" id="balStaked">0.00 RON</div></div>
-          <div class="bm-item"><div class="bm-lbl">Pending</div><div class="bm-val" id="balPending">0.00 RON</div></div>
-        </div>
-      </div>
-
-      <div class="streak-card">
-        <div>
-          <div class="streak-lbl">Current Streak</div>
-          <div class="streak-val none" id="streakVal">—</div>
-        </div>
-        <div style="font-size:32px" id="streakEmoji">😐</div>
       </div>
 
       <div class="section-title" id="pendingTitle">PENDING BETS</div>
@@ -266,9 +249,27 @@
         <div class="chart-lbl">Balance History</div>
         <svg class="chart-svg" id="chartSvg" viewBox="0 0 300 80" preserveAspectRatio="none"></svg>
       </div>
-      <div style="padding: 0 16px 8px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted);">ROI BY SPORT</div>
-      <div id="roiBySport" style="padding: 0 16px 16px; display:flex; flex-direction:column; gap:8px;"></div>
       <div class="stats-grid" id="statsGrid"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="pageAnalytics">
+      <div class="balance-card" style="margin:16px 16px 0">
+        <div class="balance-meta" style="padding:0">
+          <div class="bm-item"><div class="bm-lbl">Initial</div><div class="bm-val" id="analInitial">100 RON</div></div>
+          <div class="bm-item"><div class="bm-lbl">Staked</div><div class="bm-val" id="analStaked">0.00 RON</div></div>
+          <div class="bm-item"><div class="bm-lbl">Pending</div><div class="bm-val" id="analPending">0.00 RON</div></div>
+        </div>
+      </div>
+      <div class="streak-card" style="margin:12px 16px 0">
+        <div>
+          <div class="streak-lbl">Current Streak</div>
+          <div class="streak-val none" id="streakVal">—</div>
+        </div>
+        <div style="font-size:32px" id="streakEmoji">😐</div>
+      </div>
+      <div style="padding: 12px 16px 8px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted);">ROI BY BET</div>
+      <div id="roiBySport" style="padding: 0 16px 16px; display:flex; flex-direction:column; gap:8px;"></div>
     </div>
 
     <!-- HISTORY -->
@@ -315,11 +316,15 @@
       <div style="padding:16px 16px 8px">
         <div class="balance-label" style="margin-bottom:4px">Total Deposited</div>
         <div style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--accent)" id="totalDeposited">100 RON</div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="add-btn" style="flex:1;justify-content:center;" onclick="openDepositModal()">💰 Add Money</button>
+          <button class="add-btn" style="flex:1;justify-content:center;background:var(--surface);color:var(--accent);border:1px solid var(--accent);" onclick="openAdjustModal()">✏️ Edit Balance</button>
+        </div>
       </div>
       <div id="depositsList"></div>
       <div class="empty-box" id="depositsEmpty" style="display:none">
         <div class="big">NO DEPOSITS</div>
-        <p>Tap "Add Money" on the home screen</p>
+        <p>Use Add Money to register a deposit</p>
       </div>
     </div>
 
@@ -337,6 +342,10 @@
     <div class="nav-item" onclick="goTo('stats',this)">
       <div class="nav-icon">📊</div>
       <div class="nav-label">Stats</div>
+    </div>
+    <div class="nav-item" onclick="goTo('analytics',this)">
+      <div class="nav-icon">📈</div>
+      <div class="nav-label">Analytics</div>
     </div>
     <div class="nav-item" onclick="goTo('history',this)">
       <div class="nav-icon">📋</div>
@@ -510,6 +519,7 @@ function goTo(page, el) {
   const fab = document.getElementById('fab');
   fab.style.display = page === 'home' ? 'flex' : 'none';
   if (page === 'stats') renderStats();
+  if (page === 'analytics') renderAnalytics();
   if (page === 'history') renderHistory();
   if (page === 'deposits') renderDeposits();
 }
@@ -542,17 +552,39 @@ function renderHome() {
   const totalProfit = resolved.reduce((a,b) => a + b.ganancia, 0);
   const pendingStaked = pending.reduce((a,b)=>a+b.apuesta,0);
   const totalStaked = picks.reduce((a,b)=>a+b.apuesta,0);
-  // Available balance = initial + profits from resolved - pending stakes
   const currentBal = +(initialBalance + totalProfit - pendingStaked).toFixed(2);
   const diff = +(currentBal - initialBalance).toFixed(2);
 
   document.getElementById('balAmount').textContent = fmt(currentBal);
-  document.getElementById('balInitial').textContent = fmt(initialBalance);
-  document.getElementById('balStaked').textContent = fmt(totalStaked);
-  document.getElementById('balPending').textContent = fmt(pendingStaked);
   const de = document.getElementById('balDiff');
   de.textContent = (diff>=0?'+':'') + fmt(diff);
   de.className = 'balance-diff ' + (diff>0?'pos':diff<0?'neg':'neu');
+
+  // Pending badge
+  const badge = document.getElementById('pendingBadge');
+  badge.style.display = pending.length > 0 ? '' : 'none';
+  badge.textContent = pending.length;
+
+  document.getElementById('pendingTitle').textContent = `PENDING BETS (${pending.length})`;
+
+  const list = document.getElementById('homePicks');
+  const empty = document.getElementById('homeEmpty');
+  if (pending.length === 0) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = [...pending].reverse().map(p => pickCard(p)).join('');
+}
+
+// ── RENDER ANALYTICS ─────────────────────────────────────
+function renderAnalytics() {
+  const pending = picks.filter(p => p.resultado === 'P');
+  const resolved = picks.filter(p => p.resultado !== 'P');
+  const totalProfit = resolved.reduce((a,b) => a + b.ganancia, 0);
+  const pendingStaked = pending.reduce((a,b)=>a+b.apuesta,0);
+  const totalStaked = picks.reduce((a,b)=>a+b.apuesta,0);
+
+  document.getElementById('analInitial').textContent = fmt(initialBalance);
+  document.getElementById('analStaked').textContent = fmt(totalStaked);
+  document.getElementById('analPending').textContent = fmt(pendingStaked);
 
   // Streak
   const streak = calcStreak();
@@ -562,20 +594,34 @@ function renderHome() {
   else if (streak.type==='W') { sv.textContent=`${streak.count} WON IN A ROW`; sv.className='streak-val win'; se.textContent='🔥'; }
   else { sv.textContent=`${streak.count} LOST IN A ROW`; sv.className='streak-val loss'; se.textContent='😬'; }
 
-  // Pending badge
-  const badge = document.getElementById('pendingBadge');
-  badge.style.display = pending.length > 0 ? '' : 'none';
-  badge.textContent = pending.length;
-
-  // Pending title
-  document.getElementById('pendingTitle').textContent = `PENDING BETS (${pending.length})`;
-
-  // Picks
-  const list = document.getElementById('homePicks');
-  const empty = document.getElementById('homeEmpty');
-  if (pending.length === 0) { list.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display = 'none';
-  list.innerHTML = [...pending].reverse().map(p => pickCard(p)).join('');
+  // ROI by Bet
+  const sports = ['Football', 'Basketball', 'Esports', 'Dreamer', 'Other'];
+  const roiEl = document.getElementById('roiBySport');
+  roiEl.innerHTML = sports.map(sport => {
+    const sportPicks = picks.filter(p => p.deporte === sport && p.resultado !== 'P' && p.resultado !== 'V');
+    if (sportPicks.length === 0) return '';
+    const staked = sportPicks.reduce((a,b) => a + b.apuesta, 0);
+    const profit = sportPicks.reduce((a,b) => a + b.ganancia, 0);
+    const yield_s = staked > 0 ? ((profit/staked)*100).toFixed(1) : '0.0';
+    const won = sportPicks.filter(p => p.resultado === 'W').length;
+    const isPos = parseFloat(yield_s) >= 0;
+    const icons = {'Football':'⚽','Basketball':'🏀','Esports':'🎮','Dreamer':'🌙','Other':'🎯'};
+    const pct = Math.abs(Math.min(Math.max(parseFloat(yield_s), -100), 100));
+    return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;">${icons[sport]} ${sport}</div>
+          <div style="font-family:'Bebas Neue',cursive;font-size:20px;color:${isPos?'var(--win)':'var(--loss)'};">${isPos?'+':''}${yield_s}%</div>
+        </div>
+        <div style="background:var(--border);border-radius:4px;height:6px;margin-bottom:8px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${isPos?'var(--win)':'var(--loss)'};border-radius:4px;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">
+          <span>${sportPicks.length} picks · ${won} won</span>
+          <span style="color:${isPos?'var(--win)':'var(--loss)'};">${isPos?'+':''}${fmt(profit)}</span>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ── RENDER STATS ─────────────────────────────────────────
@@ -600,35 +646,6 @@ function renderStats() {
   `;
 
   drawChart();
-
-  // ROI by sport
-  const sports = ['Football', 'Basketball', 'Esports', 'Dreamer', 'Other'];
-  const roiEl = document.getElementById('roiBySport');
-  roiEl.innerHTML = sports.map(sport => {
-    const sportPicks = applyDate(picks.filter(p => p.deporte === sport && p.resultado !== 'P' && p.resultado !== 'V'));
-    if (sportPicks.length === 0) return '';
-    const staked = sportPicks.reduce((a,b) => a + b.apuesta, 0);
-    const profit = sportPicks.reduce((a,b) => a + b.ganancia, 0);
-    const yield_s = staked > 0 ? ((profit/staked)*100).toFixed(1) : '0.0';
-    const won = sportPicks.filter(p => p.resultado === 'W').length;
-    const isPos = parseFloat(yield_s) >= 0;
-    const icons = {'Football':'⚽','Basketball':'🏀','Esports':'🎮','Dreamer':'🌙','Other':'🎯'};
-    const pct = Math.abs(Math.min(Math.max(parseFloat(yield_s), -100), 100));
-    return `
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;">${icons[sport]} ${sport}</div>
-          <div style="font-family:'Bebas Neue',cursive;font-size:20px;color:${isPos?'var(--win)':'var(--loss)'};">${isPos?'+':''}${yield_s}%</div>
-        </div>
-        <div style="background:var(--border);border-radius:4px;height:6px;margin-bottom:8px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:${isPos?'var(--win)':'var(--loss)'};border-radius:4px;transition:width 0.5s;"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">
-          <span>${sportPicks.length} picks · ${won} won</span>
-          <span style="color:${isPos?'var(--win)':'var(--loss)'};">${isPos?'+':''}${fmt(profit)}</span>
-        </div>
-      </div>`;
-  }).join('');
 }
 function renderHistory() {
   let resolved = picks.filter(p => p.resultado !== 'P');
