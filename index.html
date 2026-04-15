@@ -12,7 +12,7 @@
     --bg: #0a0c10; --surface: #111318; --border: #252830;
     --accent: #2dd4bf; --accent2: #818cf8; --win: #3ddc84; --loss: #ff4d6d;
     --void: #f0a500; --text: #e8eaf0; --muted: #6b7080;
-    --tennis: #f0d735; --basket: #ff7c35; --football: #35c8f0; --others: #b482ff;
+    --dreamer: #f0d735; --basket: #ff7c35; --football: #35c8f0; --others: #b482ff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; font-size: 14px; }
@@ -92,7 +92,7 @@
   .pick-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
   .pick-date-txt { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
   .sport-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-family: 'DM Mono', monospace; }
-  .sport-tennis   { background: rgba(240,215,53,0.15); color: var(--tennis); }
+  .sport-dreamer  { background: rgba(240,215,53,0.15); color: var(--dreamer); }
   .sport-basket   { background: rgba(255,124,53,0.15); color: var(--basket); }
   .sport-football { background: rgba(53,200,240,0.15); color: var(--football); }
   .sport-others   { background: rgba(180,130,255,0.15); color: var(--others); }
@@ -227,12 +227,12 @@
             <button class="add-btn" style="background:var(--surface);color:var(--accent);border:1px solid var(--accent);" onclick="openAdjustModal()">✏️ Edit</button>
           </div>
         </div>
-        <div class="balance-amount" id="balAmount">€30.00</div>
-        <div class="balance-diff neu" id="balDiff">+€0.00</div>
+        <div class="balance-amount" id="balAmount">100 RON</div>
+        <div class="balance-diff neu" id="balDiff">+0.00 RON</div>
         <div class="balance-meta">
-          <div class="bm-item"><div class="bm-lbl">Initial</div><div class="bm-val" id="balInitial">€30.00</div></div>
-          <div class="bm-item"><div class="bm-lbl">Staked</div><div class="bm-val" id="balStaked">€0.00</div></div>
-          <div class="bm-item"><div class="bm-lbl">Pending</div><div class="bm-val" id="balPending">€0.00</div></div>
+          <div class="bm-item"><div class="bm-lbl">Initial</div><div class="bm-val" id="balInitial">100 RON</div></div>
+          <div class="bm-item"><div class="bm-lbl">Staked</div><div class="bm-val" id="balStaked">0.00 RON</div></div>
+          <div class="bm-item"><div class="bm-lbl">Pending</div><div class="bm-val" id="balPending">0.00 RON</div></div>
         </div>
       </div>
 
@@ -281,10 +281,11 @@
       <div id="historyListView">
         <div class="sport-tabs">
           <div class="sport-tab active" onclick="setHistorySport('ALL',this)"><span class="tab-dot" style="background:var(--accent)"></span>All</div>
-          <div class="sport-tab" onclick="setHistorySport('Tennis',this)"><span class="tab-dot" style="background:var(--tennis)"></span>Tennis</div>
-          <div class="sport-tab" onclick="setHistorySport('Basketball',this)"><span class="tab-dot" style="background:var(--basket)"></span>Basketball</div>
           <div class="sport-tab" onclick="setHistorySport('Football',this)"><span class="tab-dot" style="background:var(--football)"></span>Football</div>
+          <div class="sport-tab" onclick="setHistorySport('Basketball',this)"><span class="tab-dot" style="background:var(--basket)"></span>Basketball</div>
           <div class="sport-tab" onclick="setHistorySport('Esports',this)"><span class="tab-dot" style="background:var(--others)"></span>Esports</div>
+          <div class="sport-tab" onclick="setHistorySport('Dreamer',this)"><span class="tab-dot" style="background:var(--dreamer)"></span>Dreamer</div>
+          <div class="sport-tab" onclick="setHistorySport('Other',this)"><span class="tab-dot" style="background:var(--others)"></span>Other</div>
         </div>
         <div class="picks-list" id="historyPicks"></div>
         <div class="empty-box" id="historyEmpty" style="display:none">
@@ -311,7 +312,7 @@
     <div class="page" id="pageDeposits">
       <div style="padding:16px 16px 8px">
         <div class="balance-label" style="margin-bottom:4px">Total Deposited</div>
-        <div style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--accent)" id="totalDeposited">€30.00</div>
+        <div style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--accent)" id="totalDeposited">100 RON</div>
       </div>
       <div id="depositsList"></div>
       <div class="empty-box" id="depositsEmpty" style="display:none">
@@ -357,7 +358,7 @@
 
     <div class="form-group">
       <label>Sport</label>
-      <select id="fSport"><option>Tennis</option><option>Basketball</option><option>Football</option><option>Esports</option></select>
+      <select id="fSport"><option>Football</option><option>Basketball</option><option>Esports</option><option>Dreamer</option><option>Other</option></select>
     </div>
 
     <div class="form-group">
@@ -381,7 +382,7 @@
       <textarea id="fBetType" placeholder="e.g.&#10;Barça wins&#10;BTTS&#10;Over 2.5" rows="3" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:13px 14px;font-family:'DM Mono',monospace;font-size:14px;outline:none;border-radius:10px;width:100%;resize:none;transition:border-color 0.2s;line-height:1.6;"></textarea>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Stake (€)</label><input id="fStake" type="number" placeholder="10" min="0" step="0.01" inputmode="decimal"></div>
+      <div class="form-group"><label>Stake (RON)</label><input id="fStake" type="number" placeholder="10" min="0" step="0.01" inputmode="decimal"></div>
       <div class="form-group"><label>Odds</label><input id="fOdds" type="number" placeholder="1.75" min="1" step="0.01" inputmode="decimal"></div>
     </div>
     <div class="form-group">
@@ -405,7 +406,7 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">💰 Add Money</div>
-    <div class="form-group"><label>Amount (€)</label><input id="fDepAmt" type="number" placeholder="50" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="form-group"><label>Amount (RON)</label><input id="fDepAmt" type="number" placeholder="100" min="0" step="0.01" inputmode="decimal"></div>
     <div class="form-actions">
       <button class="btn-cancel" onclick="closeDepModal()">Cancel</button>
       <button class="btn-save" onclick="saveDeposit()">ADD</button>
@@ -419,7 +420,7 @@
     <div class="modal-handle"></div>
     <div class="modal-title">✏️ Edit Balance</div>
     <div class="form-group">
-      <label>New Current Balance (€)</label>
+      <label>New Current Balance (RON)</label>
       <input id="fAdjustAmt" type="number" placeholder="e.g. 38.50" min="0" step="0.01" inputmode="decimal">
     </div>
     <div class="form-group">
@@ -439,7 +440,7 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const H = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
 
 let picks = [], deposits = [];
-let initialBalance = 30;
+let initialBalance = 100;
 let editingId = null;
 let currentPage = 'home';
 let historySport = 'ALL';
@@ -526,7 +527,7 @@ async function loadAll() {
     ]);
     picks = await pr.json();
     deposits = await dr.json();
-    initialBalance = +(30 + deposits.reduce((a,b)=>a+b.amount,0)).toFixed(2);
+    initialBalance = +(100 + deposits.reduce((a,b)=>a+b.amount,0)).toFixed(2);
     setSync('ok');
     renderHome();
   } catch(e) { setSync('error'); }
@@ -599,7 +600,7 @@ function renderStats() {
   drawChart();
 
   // ROI by sport
-  const sports = ['Tennis', 'Football', 'Basketball', 'Esports'];
+  const sports = ['Football', 'Basketball', 'Esports', 'Dreamer', 'Other'];
   const roiEl = document.getElementById('roiBySport');
   roiEl.innerHTML = sports.map(sport => {
     const sportPicks = applyDate(picks.filter(p => p.deporte === sport && p.resultado !== 'P' && p.resultado !== 'V'));
@@ -609,7 +610,7 @@ function renderStats() {
     const yield_s = staked > 0 ? ((profit/staked)*100).toFixed(1) : '0.0';
     const won = sportPicks.filter(p => p.resultado === 'W').length;
     const isPos = parseFloat(yield_s) >= 0;
-    const icons = {'Tennis':'🎾','Football':'⚽','Basketball':'🏀','Esports':'🎯'};
+    const icons = {'Football':'⚽','Basketball':'🏀','Esports':'🎮','Dreamer':'🌙','Other':'🎯'};
     const pct = Math.abs(Math.min(Math.max(parseFloat(yield_s), -100), 100));
     return `
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;">
@@ -647,7 +648,7 @@ function setHistorySport(sport, el) {
 // ── RENDER DEPOSITS ───────────────────────────────────────
 function renderDeposits() {
   const total = deposits.reduce((a,b)=>a+b.amount,0);
-  document.getElementById('totalDeposited').textContent = fmt(30 + total);
+  document.getElementById('totalDeposited').textContent = fmt(100 + total);
   const list = document.getElementById('depositsList');
   const empty = document.getElementById('depositsEmpty');
   if (deposits.length === 0) { list.innerHTML=''; empty.style.display='block'; return; }
@@ -743,18 +744,19 @@ function pickCard(p) {
 
 // ── HELPERS ───────────────────────────────────────────────
 function sportClass(s) {
-  if(s==='Tennis') return 'sport-tennis';
+  if(s==='Dreamer') return 'sport-dreamer';
   if(s==='Basketball') return 'sport-basket';
   if(s==='Football') return 'sport-football';
   return 'sport-others';
 }
 function sportIcon(s) {
-  if(s==='Tennis') return '🎾';
+  if(s==='Dreamer') return '🌙';
   if(s==='Basketball') return '🏀';
+  if(s==='Other') return '🎯';
   if(s==='Football') return '⚽';
   return '🎯';
 }
-function fmt(n) { return (n<0?'-€':'€')+Math.abs(n).toFixed(2); }
+function fmt(n) { return (n<0?'-':'')+Math.abs(n).toFixed(2)+' RON'; }
 function applyDate(list) {
   if (dateFilter==='ALL') return list;
   const cutoff = Date.now() - parseInt(dateFilter)*86400000;
@@ -868,7 +870,7 @@ async function saveDeposit() {
   closeDepModal(); renderHome();
 }
 async function editDeposit(idx) {
-  const val=prompt('Edit deposit amount (€):'); if(!val) return;
+  const val=prompt('Edit deposit amount (RON):'); if(!val) return;
   const newAmt=parseFloat(val); if(isNaN(newAmt)||newAmt<=0){alert('Invalid amount.');return;}
   const dep=deposits[idx];
   await fetch(`${SB_URL}/rest/v1/deposits?id=eq.${dep.id}`,{method:'PATCH',headers:{...H},body:JSON.stringify({amount:newAmt})});
