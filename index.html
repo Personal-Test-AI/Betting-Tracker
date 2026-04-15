@@ -309,14 +309,21 @@
 
       <!-- List view -->
       <div id="historyListView">
-        <div class="sport-tabs">
-          <div class="sport-tab active" onclick="setHistorySport('ALL',this)"><span class="tab-dot" style="background:var(--accent)"></span>All</div>
-          <div class="sport-tab" onclick="setHistorySport('Football',this)"><span class="tab-dot" style="background:var(--football)"></span>Football</div>
-          <div class="sport-tab" onclick="setHistorySport('Basketball',this)"><span class="tab-dot" style="background:var(--basket)"></span>Basketball</div>
-          <div class="sport-tab" onclick="setHistorySport('Esports',this)"><span class="tab-dot" style="background:var(--others)"></span>Esports</div>
-          <div class="sport-tab" onclick="setHistorySport('Dreamer',this)"><span class="tab-dot" style="background:var(--dreamer)"></span>Dreamer</div>
-          <div class="sport-tab" onclick="setHistorySport('Other',this)"><span class="tab-dot" style="background:var(--others)"></span>Other</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px;">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;" id="historyFilterLabel">All Bets</div>
+          <button onclick="toggleHistoryFilter()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">⚙️ Filter</button>
         </div>
+
+        <!-- Filter dropdown -->
+        <div id="historyFilterMenu" style="display:none;margin:0 16px 8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+          <div onclick="applyHistoryFilter('ALL')" style="padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;border-bottom:1px solid var(--border);">All</div>
+          <div onclick="applyHistoryFilter('Football')" style="padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;border-bottom:1px solid var(--border);">⚽ Football</div>
+          <div onclick="applyHistoryFilter('Basketball')" style="padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;border-bottom:1px solid var(--border);">🏀 Basketball</div>
+          <div onclick="applyHistoryFilter('Esports')" style="padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;border-bottom:1px solid var(--border);">🎮 Esports</div>
+          <div onclick="applyHistoryFilter('Dreamer')" style="padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;border-bottom:1px solid var(--border);">🌙 Dreamer</div>
+          <div onclick="applyHistoryFilter('Other')" style="padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;">🎯 Other</div>
+        </div>
+
         <div class="picks-list" id="historyPicks"></div>
         <div class="empty-box" id="historyEmpty" style="display:none">
           <div class="big">NO HISTORY</div>
@@ -517,7 +524,56 @@ function unlock() {
   document.getElementById('pinScreen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('fab').style.display = 'flex';
+  generateIcon();
   loadAll();
+}
+
+function toggleHistoryFilter() {
+  const m = document.getElementById('historyFilterMenu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+function applyHistoryFilter(sport) {
+  historySport = sport;
+  document.getElementById('historyFilterMenu').style.display = 'none';
+  const labels = {'ALL':'All Bets','Football':'⚽ Football','Basketball':'🏀 Basketball','Esports':'🎮 Esports','Dreamer':'🌙 Dreamer','Other':'🎯 Other'};
+  document.getElementById('historyFilterLabel').textContent = labels[sport] || 'All Bets';
+  renderHistory();
+}
+
+function generateIcon() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 180; canvas.height = 180;
+  const ctx = canvas.getContext('2d');
+  const r = 40;
+  ctx.beginPath();
+  ctx.moveTo(r,0); ctx.lineTo(180-r,0); ctx.quadraticCurveTo(180,0,180,r);
+  ctx.lineTo(180,180-r); ctx.quadraticCurveTo(180,180,180-r,180);
+  ctx.lineTo(r,180); ctx.quadraticCurveTo(0,180,0,180-r);
+  ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
+  ctx.closePath();
+  ctx.fillStyle = '#0a0c10'; ctx.fill();
+  ctx.fillStyle = '#a50044'; ctx.fillRect(0,0,180,11);
+  ctx.fillStyle = '#004d98'; ctx.fillRect(0,169,180,11);
+  ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = 2.5;
+  ctx.strokeRect(20,22,140,90);
+  ctx.beginPath(); ctx.arc(90,67,26,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(90,22); ctx.lineTo(90,112); ctx.stroke();
+  ctx.strokeRect(20,46,20,42); ctx.strokeRect(140,46,20,42);
+  ctx.fillStyle = '#2ecc71'; ctx.beginPath(); ctx.arc(90,67,5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#2dd4bf'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  const pts = [[22,148],[38,143],[55,138],[72,131],[89,124],[106,116],[123,106],[140,96]];
+  ctx.moveTo(pts[0][0],pts[0][1]);
+  pts.slice(1).forEach(p => ctx.lineTo(p[0],p[1]));
+  ctx.stroke();
+  ctx.fillStyle = '#2dd4bf'; ctx.beginPath(); ctx.arc(140,96,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#c9a84c'; ctx.font = 'bold 18px Courier New';
+  ctx.textAlign = 'center'; ctx.letterSpacing = '4px';
+  ctx.fillText('BT', 90, 166);
+  const link = document.createElement('link');
+  link.rel = 'apple-touch-icon';
+  link.href = canvas.toDataURL('image/png');
+  document.head.appendChild(link);
 }
 
 // ── HAMBURGER MENU ───────────────────────────────────────
