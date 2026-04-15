@@ -214,7 +214,34 @@
 <div id="app">
   <div class="app-header">
     <div class="app-brand">⚡ <span>BETTING</span> TRACKER</div>
-    <div class="sync-dot loading" id="syncDot"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="sync-dot loading" id="syncDot"></div>
+      <button onclick="toggleMenu()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px;">
+        <span style="display:block;width:22px;height:2px;background:var(--text);border-radius:2px;"></span>
+        <span style="display:block;width:22px;height:2px;background:var(--text);border-radius:2px;"></span>
+        <span style="display:block;width:22px;height:2px;background:var(--text);border-radius:2px;"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SLIDE MENU -->
+  <div id="menuOverlay" onclick="toggleMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;"></div>
+  <div id="slideMenu" style="position:fixed;top:0;right:-280px;width:260px;height:100vh;background:var(--surface);z-index:201;transition:right 0.3s;padding:60px 0 20px;border-left:1px solid var(--border);">
+    <div style="padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px;">
+      <div style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--accent);">⚡ <span style="color:var(--text);">BETTING</span> TRACKER</div>
+    </div>
+    <div onclick="goToMenu('stats')" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;border-radius:10px;margin:0 8px;">
+      <span style="font-size:20px;">📊</span><span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;">Stats</span>
+    </div>
+    <div onclick="goToMenu('analytics')" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;border-radius:10px;margin:0 8px;">
+      <span style="font-size:20px;">📈</span><span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;">Analytics</span>
+    </div>
+    <div onclick="goToMenu('history')" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;border-radius:10px;margin:0 8px;">
+      <span style="font-size:20px;">📋</span><span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;">History</span>
+    </div>
+    <div onclick="goToMenu('deposits')" style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;border-radius:10px;margin:0 8px;">
+      <span style="font-size:20px;">💰</span><span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;">Deposits</span>
+    </div>
   </div>
 
   <div class="pages">
@@ -338,22 +365,6 @@
         <div class="nav-badge-dot" id="pendingBadge"></div>
       </div>
       <div class="nav-label">Home</div>
-    </div>
-    <div class="nav-item" onclick="goTo('stats',this)">
-      <div class="nav-icon">📊</div>
-      <div class="nav-label">Stats</div>
-    </div>
-    <div class="nav-item" onclick="goTo('analytics',this)">
-      <div class="nav-icon">📈</div>
-      <div class="nav-label">Analytics</div>
-    </div>
-    <div class="nav-item" onclick="goTo('history',this)">
-      <div class="nav-icon">📋</div>
-      <div class="nav-label">History</div>
-    </div>
-    <div class="nav-item" onclick="goTo('deposits',this)">
-      <div class="nav-icon">💰</div>
-      <div class="nav-label">Deposits</div>
     </div>
   </div>
 </div>
@@ -507,6 +518,27 @@ function unlock() {
   document.getElementById('app').classList.add('visible');
   document.getElementById('fab').style.display = 'flex';
   loadAll();
+}
+
+// ── HAMBURGER MENU ───────────────────────────────────────
+let menuOpen = false;
+function toggleMenu() {
+  menuOpen = !menuOpen;
+  document.getElementById('slideMenu').style.right = menuOpen ? '0' : '-280px';
+  document.getElementById('menuOverlay').style.display = menuOpen ? 'block' : 'none';
+}
+function goToMenu(page) {
+  toggleMenu();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page${page.charAt(0).toUpperCase()+page.slice(1)}`).classList.add('active');
+  currentPage = page;
+  const fab = document.getElementById('fab');
+  fab.style.display = page === 'home' ? 'flex' : 'none';
+  if (page === 'stats') renderStats();
+  if (page === 'analytics') renderAnalytics();
+  if (page === 'history') renderHistory();
+  if (page === 'deposits') renderDeposits();
 }
 
 // ── NAVIGATION ───────────────────────────────────────────
